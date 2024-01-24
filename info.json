@@ -1,0 +1,106 @@
+{
+  "identifier": "com.unbrain.bob.relingo",
+  "version": "0.0.1",
+  "category": "translate",
+  "name": "Relingo Bob",
+  "summary": "bob的relingo联动，可显示relingo个人单词掌握情况以及翻译句子",
+  "icon": "",
+  "author": "unbrain <marsorsun@gmail.com>",
+  "homepage": "https://github.com/unbrain/relingo-bob.git",
+  "appcast": "https://raw.githubusercontent.com/unbrain/relingo-bob/main/appcast.json",
+  "minBobVersion": "0.10.3",
+  "options": [
+    {
+      "identifier": "email",
+      "type": "text",
+      "title": "邮箱",
+      "desc": "输入后点击验证获取验证码。",
+      "textConfig": {
+        "type": "visible",
+        "placeholderText": "example@mail.com"
+      }
+    },
+    {
+      "identifier": "mailCode",
+      "type": "text",
+      "title": "邮箱验证码",
+      "desc":"请先输入邮箱，点击验证获取验证码，填入验证码后再点击验证。",
+      "textConfig": {
+        "type": "visible",
+        "placeholderText": "114514"
+      }
+    },
+    {
+      "identifier": "wordModel",
+      "type": "menu",
+      "title": "查词模式",
+      "defaultValue": "1",
+      "menuValues": [
+        {
+          "title": "relingo全词本查询",
+          "value": "1"
+        },
+        {
+          "title": "relingo个人词本查询",
+          "value": "0"
+        }
+      ],
+      "desc": "个人词本查询只会查询relingo个人添加的词本。"
+    },
+    {
+      "identifier": "additionalDisplay",
+      "type": "menu",
+      "title": "额外显示",
+      "defaultValue": "1",
+      "menuValues": [
+        {
+          "title": "显示词频/掌握",
+          "value": "1"
+        },
+        {
+          "title": "都不显示",
+          "value": "0"
+        }
+      ],
+      "desc": "显示词频率，掌握情况等信息。"
+    },
+    {
+      "identifier": "variant",
+      "type": "menu",
+      "title": "显示相关词汇",
+      "defaultValue": "0",
+      "menuValues": [
+        {
+          "title": "显示",
+          "value": "1"
+        },
+        {
+          "title": "不显示",
+          "value": "0"
+        }
+      ],
+      "desc": "显示单词的复数，过去式等变体。"
+    },
+    {
+      "identifier": "translationEngine",
+      "type": "menu",
+      "title": "翻译引擎",
+      "defaultValue": "openai",
+      "menuValues": [
+        {
+          "title": "openai",
+          "value": "openai"
+        },
+        {
+          "title": "bing",
+          "value": "bing"
+        },
+        {
+          "title": "deepl",
+            "value": "deepl"
+        }
+      ],
+      "desc": "openai(默认)"
+    }
+  ]
+}

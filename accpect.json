@@ -1,0 +1,12 @@
+{
+  "identifier": "com.unbrain.bob.relingo",
+  "versions": [
+    {
+      "version": "0.0.1",
+      "desc": "a relingo bob 插件",
+      "sha256": "a7c785152bae65934a4ee78d1cc7e4e5a69eb2e576795ce1df2754b1916523a0",
+      "url": "https://github.com/unbrain/Relingo-bob/releases/download/v0.0.1/relingo_bob0.0.1.bobplugin",
+      "minBobVersion": "1.8.0"
+    }
+  ]
+}
