@@ -260,6 +260,27 @@ async function loginByToken(token) {
     await getUserConfig(cleanToken);
 }
 
+function buildWordCandidates(word) {
+    const clean = (word || "").trim();
+    const lower = clean.toLowerCase();
+    if (lower && lower !== clean) {
+        return [clean, lower];
+    }
+    return [clean];
+}
+
+function pickBestWordMatch(list, originalWord) {
+    if (!Array.isArray(list) || list.length === 0) {
+        return null;
+    }
+    for (let i = 0; i < list.length; i++) {
+        if (list[i] && list[i].word === originalWord) {
+            return list[i];
+        }
+    }
+    return list[0];
+}
+
 // 从个人词本查询单词
 async function parseContent3(to, word, withDefinition, cancelSignal) {
     const userConfig = config.getConfig();
@@ -267,17 +288,18 @@ async function parseContent3(to, word, withDefinition, cancelSignal) {
         "/api/parseContent3",
         {
             to: to,
-            words: [word],
+            words: buildWordCandidates(word),
             vocabulary: userConfig.books || [],
             definition: !!withDefinition
         },
         { cancelSignal: cancelSignal }
     );
     const words = resp.data && resp.data.words;
-    if (!Array.isArray(words) || words.length === 0) {
+    const matched = pickBestWordMatch(words, word);
+    if (!matched) {
         throw makeError("notFound", "此单词未在 Relingo 个人词本中收录");
     }
-    return words[0];
+    return matched;
 }
 
 // 从全词本查询单词（支持登录态与免登录）
@@ -286,16 +308,16 @@ async function lookupDict2(to, word, withDefinition, cancelSignal) {
         "/api/lookupDict2",
         {
             to: to,
-            words: [word],
+            words: buildWordCandidates(word),
             definition: !!withDefinition
         },
         { cancelSignal: cancelSignal }
     );
-    const list = resp.data;
-    if (!Array.isArray(list) || list.length === 0) {
+    const matched = pickBestWordMatch(resp.data, word);
+    if (!matched) {
         throw makeError("notFound", "此单词未在 Relingo 词库中收录");
     }
-    return list[0];
+    return matched;
 }
 
 // 修改单词状态（对齐新版 relingo.net：统一使用 submitVocabulary）

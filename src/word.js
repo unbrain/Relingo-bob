@@ -2,12 +2,44 @@ var relingo = require('./relingo.js');
 var config = require('./config.js');
 var locales = require('./locales.js');
 
+const POS_MAP = {
+    NOUN: "n.",
+    VERB: "v.",
+    ADJ: "adj.",
+    ADJECTIVE: "adj.",
+    ADV: "adv.",
+    ADVERB: "adv.",
+    PREP: "prep.",
+    PREPOSITION: "prep.",
+    CONJ: "conj.",
+    CONJUNCTION: "conj.",
+    PRON: "pron.",
+    PRONOUN: "pron.",
+    INTJ: "int.",
+    INTERJECTION: "int.",
+    DET: "det.",
+    DETERMINER: "det.",
+    NUM: "num.",
+    AUX: "aux.",
+    PHRASE: "phr.",
+    X: ""
+};
+
+function formatPos(rawPos) {
+    const upper = String(rawPos || "").trim().toUpperCase();
+    if (Object.prototype.hasOwnProperty.call(POS_MAP, upper)) {
+        return POS_MAP[upper];
+    }
+    return String(rawPos || "").trim().toLowerCase();
+}
+
 function formatEnglishDefinitions(definitions) {
     if (!Array.isArray(definitions) || definitions.length === 0) {
         return "";
     }
     const lines = [];
-    for (let i = 0; i < definitions.length; i++) {
+    const maxGroups = Math.min(definitions.length, 3);
+    for (let i = 0; i < maxGroups; i++) {
         const group = definitions[i];
         if (!group) continue;
         const pos = group.partOfSpeech || group.pos || "";
@@ -19,9 +51,9 @@ function formatEnglishDefinitions(definitions) {
         for (let j = 0; j < maxItems; j++) {
             const item = items[j];
             if (!item || !item.definition) continue;
-            lines.push((j + 1) + ". " + item.definition);
+            lines.push((j + 1) + ". " + String(item.definition).trim());
             if (Array.isArray(item.examples) && item.examples.length > 0) {
-                lines.push("   e.g. " + item.examples[0]);
+                lines.push("   e.g. " + String(item.examples[0]).trim());
             }
         }
         if (Array.isArray(group.synonyms) && group.synonyms.length > 0) {
@@ -31,22 +63,27 @@ function formatEnglishDefinitions(definitions) {
             lines.push("反义词: " + group.antonyms.slice(0, 6).join(", "));
         }
     }
-    return lines.join("\n");
+    const joined = lines.join("\n");
+    if (joined.length > 1200) {
+        return joined.slice(0, 1197) + "...";
+    }
+    return joined;
 }
 
 // 单词翻译
-async function translate(query, source_lang, target_lang, reply) {
+async function translate(query, lookupWord, source_lang, target_lang, reply, isGuestMode) {
     const wordModel = $option.wordModel || "1";
     const additionalDisplay = $option.additionalDisplay || "2";
     const withDefinition = additionalDisplay === "2";
     const userConfig = config.getConfig();
-    const lookupWord = (query.text || "").trim();
+    const cleanWord = (lookupWord || query.text || "").trim();
+    const hasToken = !isGuestMode && !!userConfig.token;
 
     let data;
     if (wordModel === "1") {
-        data = await relingo.lookupDict2(target_lang, lookupWord, withDefinition, query.cancelSignal);
+        data = await relingo.lookupDict2(target_lang, cleanWord, withDefinition, query.cancelSignal);
     } else {
-        if (!userConfig.token) {
+        if (!hasToken) {
             const err = new Error("个人词本查询需要先登录 Relingo");
             Object.assign(err, {
                 _type: "secretKey",
@@ -54,7 +91,7 @@ async function translate(query, source_lang, target_lang, reply) {
             });
             throw err;
         }
-        data = await relingo.parseContent3(target_lang, lookupWord, withDefinition, query.cancelSignal);
+        data = await relingo.parseContent3(target_lang, cleanWord, withDefinition, query.cancelSignal);
     }
 
     if (!data) {
@@ -66,7 +103,7 @@ async function translate(query, source_lang, target_lang, reply) {
         throw err;
     }
 
-    const displayWord = data.word || lookupWord;
+    const displayWord = data.word || cleanWord;
     const toDict = {
         word: displayWord,
         phonetics: [],
@@ -100,7 +137,7 @@ async function translate(query, source_lang, target_lang, reply) {
         const posMap = {};
         data.translations.forEach((item) => {
             if (!item || !item.target) return;
-            const pos = (item.pos || "").toLowerCase();
+            const pos = formatPos(item.pos);
             const target = item.target;
             if (posMap[pos]) {
                 if (posMap[pos].means.indexOf(target) === -1) {
@@ -127,9 +164,21 @@ async function translate(query, source_lang, target_lang, reply) {
         }
     }
 
+    const enDefText = withDefinition ? formatEnglishDefinitions(data.definition) : "";
+
+    // 若既无中文释义也无英英释义（如部分专有名词空词条），回落到句子翻译
+    if (toDict.parts.length === 0 && !enDefText) {
+        const err = new Error("未查询到有效释义");
+        Object.assign(err, {
+            _type: "notFound",
+            _message: "此单词未在 Relingo 词库中收录有效释义"
+        });
+        throw err;
+    }
+
     if (additionalDisplay !== "0") {
         const extraInfo = [];
-        if (userConfig.token) {
+        if (hasToken) {
             extraInfo.push("掌握情况: " + (data.mastered ? "✅ 已掌握" : "❌ 未掌握"));
         } else {
             extraInfo.push("登录状态: 未登录（仅查词）");
@@ -148,7 +197,6 @@ async function translate(query, source_lang, target_lang, reply) {
         }
 
         if (withDefinition) {
-            const enDefText = formatEnglishDefinitions(data.definition);
             if (enDefText) {
                 toDict.additions.push({
                     name: "英英释义",
@@ -164,16 +212,7 @@ async function translate(query, source_lang, target_lang, reply) {
         }
     }
 
-    if (toDict.parts.length === 0 && toDict.additions.length === 0) {
-        const err = new Error("未查询到有效释义");
-        Object.assign(err, {
-            _type: "notFound",
-            _message: "此单词未在 Relingo 词库中收录"
-        });
-        throw err;
-    }
-
-    if (userConfig.token) {
+    if (hasToken) {
         userConfig.lastWords = displayWord;
         config.updateConfig(userConfig);
         if (data.mastered) {

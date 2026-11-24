@@ -39,6 +39,27 @@ function makeError(type, message) {
     return err;
 }
 
+function splitLongLine(line, maxLen) {
+    const parts = [];
+    let rest = line;
+    while (rest.length > maxLen) {
+        let cut = -1;
+        const slice = rest.slice(0, maxLen);
+        const punctMatches = slice.match(/.*[。！？.!?;；\s]/);
+        if (punctMatches && punctMatches[0].length >= Math.floor(maxLen * 0.4)) {
+            cut = punctMatches[0].length;
+        } else {
+            cut = maxLen;
+        }
+        parts.push(rest.slice(0, cut));
+        rest = rest.slice(cut);
+    }
+    if (rest) {
+        parts.push(rest);
+    }
+    return parts;
+}
+
 function splitTextChunks(text, maxLen) {
     const lines = String(text || "").split("\n");
     const chunks = [];
@@ -50,8 +71,9 @@ function splitTextChunks(text, maxLen) {
                 chunks.push(current);
                 current = "";
             }
-            for (let j = 0; j < line.length; j += maxLen) {
-                chunks.push(line.slice(j, j + maxLen));
+            const subParts = splitLongLine(line, maxLen);
+            for (let j = 0; j < subParts.length; j++) {
+                chunks.push(subParts[j]);
             }
             continue;
         }
@@ -130,7 +152,7 @@ function normalizeChatCompletionsUrl(rawUrl) {
     if (/\/chat\/completions$/i.test(trimmed)) {
         return trimmed;
     }
-    if (/\/v\d+$/i.test(trimmed)) {
+    if (/\/(v\d+[a-z]*|openai)$/i.test(trimmed)) {
         return trimmed + "/chat/completions";
     }
     return trimmed + "/v1/chat/completions";
@@ -186,14 +208,15 @@ async function translateByCustomLlm(query, reply) {
         const msg = data && data.error && data.error.message ? data.error.message : ("HTTP " + statusCode);
         throw makeError("api", "自定义 LLM 请求失败: " + msg);
     }
-    const content = data && Array.isArray(data.choices) && data.choices[0] && data.choices[0].message
+    const rawContent = data && Array.isArray(data.choices) && data.choices[0] && data.choices[0].message
         ? data.choices[0].message.content
         : "";
+    const content = String(rawContent || "").replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
     if (!content) {
         throw makeError("api", "自定义 LLM 未返回有效译文");
     }
     reply({
-        result: utils.buildTextResult(query.detectFrom, query.detectTo, String(content).trim())
+        result: utils.buildTextResult(query.detectFrom, query.detectTo, content)
     });
 }
 

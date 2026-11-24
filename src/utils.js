@@ -73,9 +73,12 @@ async function cipCc(query, reply) {
                 cancelSignal: query.cancelSignal
             });
             if (resp && resp.data) {
-                const out = typeof resp.data === "string"
-                    ? resp.data.trim()
-                    : JSON.stringify(resp.data).replaceAll('"', "").replaceAll("\\n", "\n").replaceAll("\\t", "\t").trim();
+                const out = (typeof resp.data === "string"
+                    ? resp.data
+                    : JSON.stringify(resp.data).replaceAll('"', "").replaceAll("\\n", "\n").replaceAll("\\t", "\t")).trim();
+                if (!out || out.charAt(0) === "<") {
+                    return false;
+                }
                 reply({
                     result: buildTextResult(query.detectFrom, query.detectTo, out)
                 });

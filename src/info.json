@@ -1,6 +1,6 @@
 {
   "identifier": "com.unbrain.bob.relingo",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "category": "translate",
   "name": "Relingo Bob",
   "summary": "Bob 与 Relingo 联动：查词同步生词本/掌握状态、英英释义与词源，支持 Relingo 多引擎及自定义 LLM 句子翻译",
@@ -82,11 +82,11 @@
       "defaultValue": "1",
       "menuValues": [
         {
-          "title": "relingo全词本查询",
+          "title": "Relingo 全词本查询",
           "value": "1"
         },
         {
-          "title": "relingo个人词本查询",
+          "title": "Relingo 个人词本查询",
           "value": "0"
         }
       ],

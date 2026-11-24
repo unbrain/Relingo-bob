@@ -25,16 +25,30 @@ function supportLanguages() {
     return items.map(([standardLang]) => standardLang);
 }
 
-function isSingleEnglishWord(text, sourceLanguage) {
+function hashString(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(16);
+}
+
+function extractSingleEnglishWord(text, sourceLanguage) {
     if (sourceLanguage !== "en" && sourceLanguage !== "auto") {
-        return false;
+        return "";
     }
-    const trimmed = (text || "").trim();
-    if (!trimmed || trimmed.length > 64) {
-        return false;
+    const cleaned = (text || "")
+        .trim()
+        .replace(/^[\s"'“”‘’(\[{<]+|[\s"'“”‘’)\]}>.,!?;:]+$/g, "");
+    if (!cleaned || cleaned.length > 64) {
+        return "";
     }
-    // 支持普通英文单词及连字符复合词（如 state-of-the-art）
-    return /^[a-zA-Z]+(?:[-'][a-zA-Z]+)*$/.test(trimmed);
+    // 支持普通英文单词及连字符/撇号复合词（如 state-of-the-art、don't）
+    if (/^[a-zA-Z]+(?:[-'][a-zA-Z]+)*$/.test(cleaned)) {
+        return cleaned;
+    }
+    return "";
 }
 
 function getAuthSignature() {
@@ -42,7 +56,7 @@ function getAuthSignature() {
     const email = ($option.email || "").trim();
     const token = ($option.token || "").trim();
     if (method === "token") {
-        return "token:" + token.slice(0, 16);
+        return "token:" + token.length + ":" + hashString(token);
     }
     if (method === "guest") {
         return "guest";
@@ -58,20 +72,40 @@ function translate(query, completion) {
             return;
         }
 
-        const userConfig = config.getConfig();
-        if (userConfig.token) {
+        const loginMethod = $option.loginMethod || "code";
+        const isGuestMode = loginMethod === "guest";
+        let userConfig = config.getConfig();
+
+        // Token 直连模式下，若用户刚填入或更换了 Token，自动同步一次登录态
+        if (loginMethod === "token") {
+            const optToken = ($option.token || "").trim();
+            const sig = getAuthSignature();
+            if (optToken && (userConfig.authSignature !== sig || !userConfig.token)) {
+                try {
+                    config.resetAuthConfig(sig);
+                    await relingo.loginByToken(optToken);
+                    userConfig = config.getConfig();
+                } catch (e) {
+                    $log.error("Token 直连自动同步失败: " + JSON.stringify(e));
+                    if ($option.wordModel === "0" && ($option.fallbackEngine || "mymemory") === "none") {
+                        throw e;
+                    }
+                }
+            }
+        }
+
+        if (!isGuestMode && userConfig.token) {
             try {
                 await utils.updateTokenConfig(userConfig);
             } catch (e) {
                 $log.error("自动刷新 Relingo Token 失败: " + JSON.stringify(e));
-                // 若配置了兜底引擎或全词本模式，不阻断后续查词/兜底翻译
                 if ($option.wordModel === "0" && ($option.fallbackEngine || "mymemory") === "none") {
                     throw e;
                 }
             }
         }
 
-        if (await utils.checkVocabulary(query, reply)) {
+        if (!isGuestMode && await utils.checkVocabulary(query, reply)) {
             return;
         }
 
@@ -94,12 +128,14 @@ function translate(query, completion) {
         }
 
         // 1. 英文单词查询（全词本支持免登录，个人词本需登录）
-        if (isSingleEnglishWord(translateText, sourceLang)) {
+        const singleWord = extractSingleEnglishWord(translateText, sourceLang);
+        if (singleWord) {
             const wordModel = $option.wordModel || "1";
             const latestConfig = config.getConfig();
-            if (wordModel === "1" || latestConfig.token) {
+            const hasToken = !isGuestMode && !!latestConfig.token;
+            if (wordModel === "1" || hasToken) {
                 try {
-                    await words.translate(query, sourceLang, targetLang, reply);
+                    await words.translate(query, singleWord, sourceLang, targetLang, reply, isGuestMode);
                     return;
                 } catch (e) {
                     if (e._type !== "notFound") {
@@ -107,6 +143,14 @@ function translate(query, completion) {
                     }
                 }
             }
+        }
+
+        // 源语言与目标语言一致且非英文查词时直接返回原文
+        if (sourceLang === targetLang && sourceLang !== "auto") {
+            reply({
+                result: utils.buildTextResult(query.detectFrom, query.detectTo, query.text || "")
+            });
+            return;
         }
 
         // 2. 句子 / 段落翻译
@@ -119,7 +163,7 @@ function translate(query, completion) {
         }
 
         const latestConfig = config.getConfig();
-        if (!latestConfig.token) {
+        if (isGuestMode || !latestConfig.token) {
             if (fallbackEngine !== "none") {
                 await fallback.translateWithEngine(fallbackEngine, query, reply);
                 return;
@@ -167,6 +211,19 @@ function pluginValidate(completion) {
         const mailCode = ($option.mailCode || "").trim();
         const password = $option.password || "";
         const token = ($option.token || "").trim();
+
+        if (($option.translationEngine || "google") === "custom-llm") {
+            if (!($option.customLlmUrl || "").trim() || !($option.customLlmKey || "").trim()) {
+                completion({
+                    result: false,
+                    error: {
+                        type: "secretKey",
+                        message: "已选择「自定义 OpenAI 兼容 LLM」，请填写自定义 LLM 地址与 Key"
+                    }
+                });
+                return;
+            }
+        }
 
         if (loginMethod === "guest") {
             config.resetAuthConfig("guest");
