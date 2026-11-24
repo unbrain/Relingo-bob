@@ -2,6 +2,14 @@
   "identifier": "com.unbrain.bob.relingo",
   "versions": [
     {
+      "version": "0.0.4",
+      "desc": "v0.0.4: 优化设置项布局（邮箱/验证码紧贴验证按钮）、支持繁体中文词典、短英文误判语种兜底与验证码 60s 重发",
+      "sha256": "1f18853ce2cc13543b152276ac091b247eff63464bbfc92e4e8c12590f926c28",
+      "url": "https://github.com/unbrain/Relingo-bob/releases/download/v0.0.4/relingo_bob0.0.4.bobplugin",
+      "minBobVersion": "1.8.0",
+      "timestamp": 1795491417749
+    },
+    {
       "version": "0.0.3",
       "desc": "v0.0.3: 优化大小写/标点查词、空词条回落、JWT Token 签名校验、词性缩写、Gemini/推理模型兼容与长文本分片",
       "sha256": "084f91e569f5efb16a34cd8577388c4b89039c06b4dc7678758b6e77ef85896b",
