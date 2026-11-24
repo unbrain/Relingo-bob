@@ -91,8 +91,22 @@ function splitTextChunks(text, maxLen) {
     return chunks;
 }
 
+function resolveMyMemorySource(detectFrom, text) {
+    const mapped = mymemoryLangMap.get(detectFrom);
+    if (mapped) {
+        return mapped;
+    }
+    if (detectFrom === "yue" || detectFrom === "wyw") {
+        return "zh-CN";
+    }
+    if (/[\u4e00-\u9fff]/.test(String(text || ""))) {
+        return "zh-CN";
+    }
+    return "en";
+}
+
 async function translateByMyMemory(query, reply) {
-    const fromCode = mymemoryLangMap.get(query.detectFrom) || "en";
+    const fromCode = resolveMyMemorySource(query.detectFrom, query.text);
     const toCode = mymemoryLangMap.get(query.detectTo);
     if (!toCode) {
         throw makeError("unsupportedLanguage", "MyMemory 兜底引擎不支持该目标语种");

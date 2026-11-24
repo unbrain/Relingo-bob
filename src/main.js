@@ -7,7 +7,7 @@ var fallback = require('./fallback.js');
 var items = [
     ["auto", "auto"],
     ["zh-Hans", "zh"],
-    ["zh-Hant", "zh"],
+    ["zh-Hant", "zh_TW"],
     ["en", "en"],
     ["ja", "ja"],
     ["ko", "ko"],
@@ -34,13 +34,16 @@ function hashString(str) {
     return (h >>> 0).toString(16);
 }
 
-function extractSingleEnglishWord(text, sourceLanguage) {
-    if (sourceLanguage !== "en" && sourceLanguage !== "auto") {
+function extractSingleEnglishWord(text, sourceLanguage, rawFrom, targetLang) {
+    const raw = String(text || "").trim();
+    if (!raw || /[\r\n]/.test(raw)) {
         return "";
     }
-    const cleaned = (text || "")
-        .trim()
-        .replace(/^[\s"'“”‘’(\[{<]+|[\s"'“”‘’)\]}>.,!?;:]+$/g, "");
+    const allowAutoFallback = rawFrom === "auto" && (targetLang === "zh" || targetLang === "zh_TW");
+    if (sourceLanguage !== "en" && sourceLanguage !== "auto" && !allowAutoFallback) {
+        return "";
+    }
+    const cleaned = raw.replace(/^[\s"'“”‘’(\[{<]+|[\s"'“”‘’)\]}>.,!?;:]+$/g, "");
     if (!cleaned || cleaned.length > 64) {
         return "";
     }
@@ -128,7 +131,7 @@ function translate(query, completion) {
         }
 
         // 1. 英文单词查询（全词本支持免登录，个人词本需登录）
-        const singleWord = extractSingleEnglishWord(translateText, sourceLang);
+        const singleWord = extractSingleEnglishWord(translateText, sourceLang, query.from, targetLang);
         if (singleWord) {
             const wordModel = $option.wordModel || "1";
             const latestConfig = config.getConfig();
@@ -303,17 +306,30 @@ function pluginValidate(completion) {
                     result: false,
                     error: {
                         type: "secretKey",
-                        message: "邮箱验证码已发送，请将验证码填入「邮箱验证码」后再次点击验证"
+                        message: "验证码已发送至邮箱，请在上方「邮箱验证码」填入后再次点击验证"
                     }
                 });
                 return;
             case "waitingCode":
                 if (!mailCode) {
+                    const elapsed = Date.now() - (userConfig.mailCodeSendAt || 0);
+                    if (elapsed >= 60000) {
+                        await relingo.authorization(email);
+                        completion({
+                            result: false,
+                            error: {
+                                type: "secretKey",
+                                message: "已重新发送邮箱验证码，请查收后填入上方「邮箱验证码」并再次点击验证"
+                            }
+                        });
+                        return;
+                    }
+                    const waitSec = Math.max(1, Math.ceil((60000 - elapsed) / 1000));
                     completion({
                         result: false,
                         error: {
                             type: "secretKey",
-                            message: "请填入邮箱收到的验证码后再次点击验证"
+                            message: "请填入邮箱收到的验证码后再次点击验证（如需重发请等待 " + waitSec + " 秒）"
                         }
                     });
                     return;
@@ -335,7 +351,7 @@ function pluginValidate(completion) {
                     result: false,
                     error: {
                         type: "secretKey",
-                        message: "邮箱验证码已发送，请将验证码填入「邮箱验证码」后再次点击验证"
+                        message: "验证码已发送至邮箱，请在上方「邮箱验证码」填入后再次点击验证"
                     }
                 });
                 return;

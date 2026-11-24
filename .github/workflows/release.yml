@@ -6,7 +6,7 @@ on:
       desc:
         description: "Release description"
         required: false
-        default: "v0.0.3: 优化大小写/标点查词、空词条回落、JWT Token 签名校验、词性缩写、Gemini/推理模型兼容与长文本分片"
+        default: "v0.0.4: 优化设置项布局（邮箱/验证码紧贴验证按钮）、支持繁体中文词典、短英文误判语种兜底与验证码 60s 重发"
 
 permissions:
   contents: write
@@ -44,17 +44,12 @@ jobs:
           body: |
             ### 更新内容 (v${{ steps.build.outputs.version }})
 
-            - **查词体验优化**：
-              - 支持首字母大写/全大写单词（如 `Vocabulary`、`Apple`、`USA`）与带标点选词（如 `"vocabulary."`）自动匹配 Relingo 词库。
-              - 词性标签规范化为 `n.` / `v.` / `adj.` / `adv.` 等标准缩写，英英释义限制长度避免弹窗溢出。
-              - 无中文释义且无英英释义的空词条（如部分专有名词）自动回落到句子翻译。
-            - **认证与状态优化**：
-              - 修复 JWT Token 前缀相同导致更换 Token 不触发刷新的问题（改用长度 + FNV-1a 哈希签名）。
-              - Token 直连模式支持首次翻译自动同步登录态；切换为「仅查词（免登录）」立即生效。
-              - 选择「自定义 OpenAI 兼容 LLM」时在「验证」阶段校验地址与 Key。
-            - **兜底与兼容性优化**：
-              - 自定义 LLM 地址兼容 `/openai`、`/v1beta` 等路径，并自动过滤推理模型 `<think>` 标签。
-              - MyMemory 长文本按句号/空格边界智能分片，避免超 500 字符限制。
-              - `cip.cc` 异常返回 HTML 时自动跳过。
+            - **设置面板交互优化**：
+              - 将「登录方式 / Token / 密码 / 邮箱 / 邮箱验证码」移至设置面板底部，紧贴 Bob 的「验证」按钮，无需来回滚动即可完成输入与验证。
+              - 验证码等待状态下超过 60 秒未填码再次点击「验证」可自动重发验证码，60 秒内提示剩余等待秒数。
+            - **查词与语种优化**：
+              - 繁体中文（`zh-Hant`）映射为 Relingo 原生支持的 `zh_TW`，直接返回繁体释义与繁体变体标签。
+              - 当源语言为 `auto` 且 Bob 将短英文单词（如 `menu`、`status`）误判为法/德/西语时，仍优先尝试 Relingo 英文查词，未收录再回落句子翻译。
+              - MyMemory 兜底源语言识别兼容粤语/文言文及中文字符检测。
           files: release/relingo_bob${{ steps.build.outputs.version }}.bobplugin
           make_latest: true
