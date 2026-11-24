@@ -1,23 +1,63 @@
-name: Build Bob Plugin
+name: Release Bob Plugin
 
 on:
   workflow_dispatch:
+    inputs:
+      desc:
+        description: "Release description"
+        required: false
+        default: "v0.0.2: 适配新版 Relingo 与 Bob 1.21+，修复英式发音/appcast/config/验证码卡死，新增密码与Token登录、英英释义/词源、多引擎及兜底翻译"
+
+permissions:
+  contents: write
 
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Build .bobplugin package
+      - name: Build package and update appcast.json
+        id: build
         run: |
           VERSION="$(python3 -c 'import json; print(json.load(open("src/info.json"))["version"])')"
-          mkdir -p release
-          (cd src && zip -q -r "../release/relingo_bob${VERSION}.bobplugin" .)
-          shasum -a 256 "release/relingo_bob${VERSION}.bobplugin"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          ./scripts/build.sh "${{ inputs.desc }}"
 
-      - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
+      - name: Commit updated appcast.json
+        run: |
+          if ! git diff --quiet appcast.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add appcast.json
+            git commit -m "chore: update appcast.json for v${{ steps.build.outputs.version }}"
+            git push origin HEAD:main
+          fi
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: bobplugin
-          path: release/*.bobplugin
+          tag_name: v${{ steps.build.outputs.version }}
+          name: v${{ steps.build.outputs.version }}
+          body: |
+            ### 更新内容 (v${{ steps.build.outputs.version }})
+
+            - **适配新版 Bob (1.21+)**：移除已废弃的 `fromParagraphs`，同时返回 `content` 与 `toParagraphs` 兼容新旧版本。
+            - **修复历史 Bug**：
+              - 修复英式发音 TTS URL（`type=1`）。
+              - 修复 `accpect.json` 拼写错误为 `appcast.json`，恢复 Bob 自动检查更新。
+              - 修复 `config.js` 版本升级拼写错误（`vserion` -> `version`），升级保留登录态。
+              - 修复验证码过期后卡死在 `waitingCode` 的问题，支持切换账号自动重置。
+              - 修复单词查询成功后重复调用段落翻译的问题，支持连字符复合词（如 `state-of-the-art`）。
+            - **对齐新版 Relingo 接口**：
+              - 词本配置兼容 `langBooks` 与旧版 `books`。
+              - 单词状态切换统一使用 `/api/submitVocabulary`。
+              - 新增 **邮箱密码登录**（`/api/login`）、**Token 直连** 与 **免登录查词** 模式。
+              - 查词支持展示 **英英释义（含例句/同反义词）与词源**。
+            - **翻译引擎与兜底升级**：
+              - 句子翻译引擎更新为 `Google（Relingo 免费默认）`、`OpenAI`、`DeepL`、`DeepSeek`、`Claude`、`Gemini`、`Niu`。
+              - 新增 **MyMemory 免费直连** 与 **自定义 OpenAI 兼容 LLM**，支持在 Relingo 未登录或返回 `403`/Credits 不足时自动兜底。
+          files: release/relingo_bob${{ steps.build.outputs.version }}.bobplugin
+          make_latest: true

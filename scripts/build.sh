@@ -18,7 +18,11 @@ rm -f "$OUT_FILE"
 
 (cd "$SRC_DIR" && zip -q -r "$OUT_FILE" .)
 
-SHA256="$(shasum -a 256 "$OUT_FILE" | awk '{print $1}')"
+if command -v shasum >/dev/null 2>&1; then
+  SHA256="$(shasum -a 256 "$OUT_FILE" | awk '{print $1}')"
+else
+  SHA256="$(sha256sum "$OUT_FILE" | awk '{print $1}')"
+fi
 TIMESTAMP_MS="$(python3 -c 'import time; print(int(time.time() * 1000))')"
 
 python3 - "$APPCAST_FILE" "$IDENTIFIER" "$VERSION" "$DESC" "$SHA256" "$MIN_BOB" "$TIMESTAMP_MS" <<'PY'
