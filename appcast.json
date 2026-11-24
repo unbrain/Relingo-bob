@@ -4,10 +4,10 @@
     {
       "version": "0.0.2",
       "desc": "v0.0.2: 适配新版 Relingo 与 Bob 1.21+，修复英式发音/appcast/config/验证码卡死，新增密码与Token登录、英英释义/词源、多引擎及兜底翻译",
-      "sha256": "072c904c461fffb2ff60baf5b415faec128ad6c8ad1b789e04219126c69473a9",
+      "sha256": "002f11c5fa3063b56064a75cf23ce5dbf55008d2dd317aa0ba5106752b5c52b3",
       "url": "https://github.com/unbrain/Relingo-bob/releases/download/v0.0.2/relingo_bob0.0.2.bobplugin",
       "minBobVersion": "1.8.0",
-      "timestamp": 1795490002555
+      "timestamp": 1795490231803
     },
     {
       "version": "0.0.1",
