@@ -1,0 +1,23 @@
+name: Build Bob Plugin
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build .bobplugin package
+        run: |
+          VERSION="$(python3 -c 'import json; print(json.load(open("src/info.json"))["version"])')"
+          mkdir -p release
+          (cd src && zip -q -r "../release/relingo_bob${VERSION}.bobplugin" .)
+          shasum -a 256 "release/relingo_bob${VERSION}.bobplugin"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bobplugin
+          path: release/*.bobplugin

@@ -1,0 +1,230 @@
+{
+  "identifier": "com.unbrain.bob.relingo",
+  "version": "0.0.2",
+  "category": "translate",
+  "name": "Relingo Bob",
+  "summary": "Bob 与 Relingo 联动：查词同步生词本/掌握状态、英英释义与词源，支持 Relingo 多引擎及自定义 LLM 句子翻译",
+  "icon": "",
+  "author": "unbrain <marsorsun@gmail.com>",
+  "homepage": "https://github.com/unbrain/Relingo-bob",
+  "appcast": "https://raw.githubusercontent.com/unbrain/Relingo-bob/main/appcast.json",
+  "minBobVersion": "1.8.0",
+  "options": [
+    {
+      "identifier": "loginMethod",
+      "type": "menu",
+      "title": "登录方式",
+      "defaultValue": "code",
+      "menuValues": [
+        {
+          "title": "邮箱验证码登录",
+          "value": "code"
+        },
+        {
+          "title": "邮箱密码登录",
+          "value": "password"
+        },
+        {
+          "title": "Token 直连",
+          "value": "token"
+        },
+        {
+          "title": "仅查词（不登录）",
+          "value": "guest"
+        }
+      ],
+      "desc": "支持邮箱验证码、密码、Token 直连或免登录查词（免登录仅支持全词本查词与兜底翻译）。"
+    },
+    {
+      "identifier": "email",
+      "type": "text",
+      "title": "邮箱",
+      "desc": "验证码登录：先填邮箱点验证发码，再填验证码点验证；密码登录：填邮箱与密码后点验证。",
+      "textConfig": {
+        "type": "visible",
+        "placeholderText": "example@mail.com"
+      }
+    },
+    {
+      "identifier": "mailCode",
+      "type": "text",
+      "title": "邮箱验证码",
+      "desc": "仅「邮箱验证码登录」需要填写。",
+      "textConfig": {
+        "type": "visible",
+        "placeholderText": "114514"
+      }
+    },
+    {
+      "identifier": "password",
+      "type": "text",
+      "title": "登录密码",
+      "desc": "仅「邮箱密码登录」需要填写，仅用于换取 Token，不会写入插件缓存文件。",
+      "textConfig": {
+        "type": "secure",
+        "placeholderText": "Relingo 账号密码"
+      }
+    },
+    {
+      "identifier": "token",
+      "type": "text",
+      "title": "Relingo Token",
+      "desc": "仅「Token 直连」需要填写（x-relingo-token，可从 relingo.net 浏览器 localStorage.user 中获取）。",
+      "textConfig": {
+        "type": "secure",
+        "placeholderText": "x-relingo-token"
+      }
+    },
+    {
+      "identifier": "wordModel",
+      "type": "menu",
+      "title": "查词模式",
+      "defaultValue": "1",
+      "menuValues": [
+        {
+          "title": "relingo全词本查询",
+          "value": "1"
+        },
+        {
+          "title": "relingo个人词本查询",
+          "value": "0"
+        }
+      ],
+      "desc": "个人词本查询只会查询 relingo 个人添加的词本（需登录）；未收录单词将自动回落到句子翻译。"
+    },
+    {
+      "identifier": "additionalDisplay",
+      "type": "menu",
+      "title": "额外显示",
+      "defaultValue": "2",
+      "menuValues": [
+        {
+          "title": "完整显示（词频/掌握 + 英英释义/词源）",
+          "value": "2"
+        },
+        {
+          "title": "仅显示词频/掌握",
+          "value": "1"
+        },
+        {
+          "title": "都不显示",
+          "value": "0"
+        }
+      ],
+      "desc": "控制是否在词典卡片附加区域显示掌握状态、词频、英英释义、同反义词与词源。"
+    },
+    {
+      "identifier": "variant",
+      "type": "menu",
+      "title": "显示相关词汇",
+      "defaultValue": "1",
+      "menuValues": [
+        {
+          "title": "显示",
+          "value": "1"
+        },
+        {
+          "title": "不显示",
+          "value": "0"
+        }
+      ],
+      "desc": "显示单词的复数、过去式等词形变体。"
+    },
+    {
+      "identifier": "translationEngine",
+      "type": "menu",
+      "title": "翻译引擎",
+      "defaultValue": "google",
+      "menuValues": [
+        {
+          "title": "Google（Relingo 免费默认）",
+          "value": "google"
+        },
+        {
+          "title": "OpenAI（Relingo Credits）",
+          "value": "openai"
+        },
+        {
+          "title": "DeepL（Relingo Credits）",
+          "value": "deepl"
+        },
+        {
+          "title": "DeepSeek（Relingo Credits）",
+          "value": "deepseek"
+        },
+        {
+          "title": "Claude（Relingo Credits）",
+          "value": "claude"
+        },
+        {
+          "title": "Gemini（Relingo Credits）",
+          "value": "gemini"
+        },
+        {
+          "title": "小牛翻译 Niu（Relingo）",
+          "value": "niu"
+        },
+        {
+          "title": "MyMemory 免费直连（免登录/免 Key）",
+          "value": "mymemory"
+        },
+        {
+          "title": "自定义 OpenAI 兼容 LLM",
+          "value": "custom-llm"
+        }
+      ],
+      "desc": "Relingo V3.30+ 默认免费引擎为 Google；OpenAI/DeepL/DeepSeek/Claude/Gemini 需账号有 Relingo Credits。"
+    },
+    {
+      "identifier": "fallbackEngine",
+      "type": "menu",
+      "title": "兜底翻译引擎",
+      "defaultValue": "mymemory",
+      "menuValues": [
+        {
+          "title": "MyMemory 免费直连",
+          "value": "mymemory"
+        },
+        {
+          "title": "自定义 OpenAI 兼容 LLM",
+          "value": "custom-llm"
+        },
+        {
+          "title": "不启用兜底",
+          "value": "none"
+        }
+      ],
+      "desc": "当未登录 Relingo、Credits 不足或 Relingo 返回 403/2001 时自动切换兜底引擎。"
+    },
+    {
+      "identifier": "customLlmUrl",
+      "type": "text",
+      "title": "自定义 LLM 地址",
+      "desc": "OpenAI 兼容接口地址（如 https://api.openai.com/v1 或完整 /chat/completions 地址）。",
+      "textConfig": {
+        "type": "visible",
+        "placeholderText": "https://api.openai.com/v1/chat/completions"
+      }
+    },
+    {
+      "identifier": "customLlmKey",
+      "type": "text",
+      "title": "自定义 LLM Key",
+      "desc": "自定义 OpenAI 兼容接口的 API Key（仅本地使用）。",
+      "textConfig": {
+        "type": "secure",
+        "placeholderText": "sk-..."
+      }
+    },
+    {
+      "identifier": "customLlmModel",
+      "type": "text",
+      "title": "自定义 LLM 模型",
+      "desc": "自定义 LLM 模型名称，如 gpt-4o-mini、deepseek-chat、Qwen/Qwen2.5-7B-Instruct。",
+      "textConfig": {
+        "type": "visible",
+        "placeholderText": "gpt-4o-mini"
+      }
+    }
+  ]
+}

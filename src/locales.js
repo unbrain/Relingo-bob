@@ -73,15 +73,15 @@ const locales = {
         zh: "忘记了",
         en: "Forgot",
         zh_TW: "忘記了",
-        ko: "장악",
-        ja: "把握",
-        fr: "Déjà maîtrisé",
-        es: "Ha dominado",
-        pt: "Dominado",
-        ru: "Усвоено",
-        hi: "मास्टर्ड",
-        ar: "تمت الإستعادة",
-        de: "Beherrscht"
+        ko: "잊음",
+        ja: "忘れた",
+        fr: "Oublié",
+        es: "Olvidado",
+        pt: "Esquecido",
+        ru: "Забыто",
+        hi: "भूल गया",
+        ar: "نسيت",
+        de: "Vergessen"
     },
     statsStarAll: {
         zh: "添加所有",
@@ -295,11 +295,11 @@ const locales = {
     }
 };
 
-
 function getlocales(key, target) {
-    if (locales[key] && locales[key][target]) {
-        return locales[key][target];
+    if (locales[key]) {
+        return locales[key][target] || locales[key].zh || locales[key].en || key;
     }
+    return key;
 }
 
 exports.getlocales = getlocales;
